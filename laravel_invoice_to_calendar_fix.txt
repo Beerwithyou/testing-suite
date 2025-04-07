@@ -1,0 +1,57 @@
+Gotcha! Sounds like your app is generating the invoice just fine, but then it's failing to redirect properly to the calendar view, possibly skipping the necessary data or controller logic needed to render `calendar.blade.php`.
+
+---
+
+🚨 The Issue:
+When the invoice is created and you redirect to the calendar, the `calendar.blade.php` expects certain variables (maybe like `$availableDates`, `$user`, etc.). But since you're not going through the correct controller (`CalendarController`), those variables aren't being passed.
+
+---
+
+✅ What You Likely Want:
+After creating the invoice, redirect to a route that is handled by the `CalendarController`, not directly to the view.
+
+---
+
+🔧 Example Fix:
+
+In your controller method where you handle the invoice creation, instead of:
+
+```php
+return view('calendar');
+```
+
+Use:
+
+```php
+return redirect()->route('calendar.show', ['invoice_id' => $invoice->id]);
+```
+
+Then in your **routes/web.php**, make sure you have a route like:
+
+```php
+Route::get('/calendar/{invoice_id}', [CalendarController::class, 'show'])->name('calendar.show');
+```
+
+And in your **CalendarController**:
+
+```php
+public function show($invoice_id)
+{
+    $invoice = Invoice::findOrFail($invoice_id);
+    
+    // Load whatever other data you need here
+    $availableDates = $this->getAvailableDates();
+    
+    return view('calendar', [
+        'invoice' => $invoice,
+        'availableDates' => $availableDates,
+    ]);
+}
+```
+
+---
+
+✅ TL;DR:
+- Never redirect straight to a view if it depends on controller logic.
+- Always redirect to a route, which is handled by the proper controller.
+- Pass necessary parameters (like invoice ID) so the calendar knows what to show.
